@@ -1,0 +1,59 @@
+; points the assembler to the address and set 16 bit mode
+org 0x7C00
+bits 16
+
+%define ENDL 0x0D, 0x0A
+
+start:
+	jmp main
+
+; print string to the screen
+; param
+; ds:si points to string
+
+puts:
+	; save registers we will modify
+	push si
+	push ax
+	push bx
+
+.loop:
+	lodsb	; loads next character in al
+	or al, al	; verify if it is null?
+	jz .done
+
+	move ah, 0x0E ; set interrupt mode to graphical
+	mov bh, 0
+	int 0x10	; bios interrupt
+	jmp .loop
+
+.done:
+	; pop the registers from earlier
+	pop bx
+	pop ax
+	pop si
+	ret
+
+main:
+
+	; setup data segments
+	
+	mov ax, 0	; cant write to ds and es directly, so we use as as 0 to set them 0
+	mov ds, ax
+	mov es, ax
+
+	; stack setup
+	mov ss, ax
+	mov sp, 0x7C00 ; stack grows down from where we are loaded, and this is where we are according to ORG
+
+	; print the mf
+	mov si, msg_hello
+	call puts
+
+.halt:
+	jmp .halt
+
+msg_hello: db "Hello world!", ENDL, 0
+
+times 510-($-$$) db 0
+dw 0AA55h
